@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Validador QR Móvil + Excel</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --primary: #4361ee;
+            --secondary: #3f37c9;
+            --success: #4cc9f0;
+            --danger: #f72585;
+            --warning: #ffbe0b;
+            --dark: #1e293b;
+            --light: #f8fafc;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: var(--light);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        }
+        
+        h1 {
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .app-description {
+            font-size: 1.1rem;
+            max-width: 800px;
+            margin: 0 auto;
+            opacity: 0.9;
+        }
+        
+        .tabs {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50px;
+            padding: 5px;
+            backdrop-filter: blur(10px);
+            flex-wrap: wrap;
+        }
+        
+        .tab {
+            padding: 12px 20px;
+            cursor: pointer;
+            border-radius: 50px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            flex-grow: 1;
+            text-align: center;
+        }
+        
+        .tab.active {
+            background: var(--primary);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        }
+        
+        .card-title {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        
+        input, textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.9);
+            font-size: 16px;
+            color: var(--dark);
+        }
+        
+        button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            margin: 5px;
+        }
+        
+        button:hover {
+            background: var(--secondary);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .btn-success {
+            background: var(--success);
+        }
+        
+        .btn-danger {
+            background: var(--danger);
+        }
+        
+        .btn-warning {
+            background: var(--warning);
+            color: var(--dark);
+        }
+        
+        .qr-preview {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 15px;
+            margin-top: 20px;
+        }
+        
+        #qrcode {
+            margin: 15px 0;
+            padding: 15px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .camera-container {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+            overflow: hidden;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        
+        #video {
+            width: 100%;
+            display: block;
+            background: #000;
+        }
+        
+        .scan-area {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 70%;
+            height: 70%;
+            border: 3px solid var(--success);
+            border-radius: 10px;
+            box-shadow: 0 0 0 2000px rgba(0, 0, 0, 0.3);
+        }
+        
+        .scan-line {
+            position: absolute;
+            width: 100%;
+            height: 3px;
+            background: var(--success);
+            top: 0;
+            animation: scan 2s infinite linear;
+        }
+        
+        @keyframes scan {
+            0% { top: 0; }
+            100% { top: 100%; }
+        }
+        
+        .validation-result {
+            text-align: center;
+            padding: 20px;
+            margin-top: 20px;
+            border-radius: 15px;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+        }
+        
+        .result-icon {
+            font-size: 4rem;
+            margin-bottom: 15px;
+        }
+        
+        .valid {
+            color: #4ade80;
+        }
+        
+        .invalid {
+            color: #f87171;
+        }
+        
+        .contacts-grid, .validation-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .contact-card, .validation-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 15px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .contact-card:hover, .validation-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+        }
+        
+        .contact-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .contact-name {
+            font-weight: 600;
+            font-size: 1.2rem;
+        }
+        
+        .contact-title {
+            font-style: italic;
+            opacity: 0.9;
+            margin-bottom: 10px;
+        }
+        
+        .actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .mobile-optimized {
+            font-size: 16px; /* Previene el zoom en iOS */
+        }
+        
+        .mobile-notification {
+            display: none;
+            background: var(--warning);
+            color: var(--dark);
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+            text-align: center;
+        }
+        
+        @media (max-width: 768px) {
+            .tabs {
+                flex-direction: column;
+                border-radius: 15px;
+            }
+            
+            .tab {
+                width: 100%;
+                text-align: center;
+                margin-bottom: 5px;
+            }
+            
+            .contacts-grid, .validation-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            h1 {
+                font-size: 1.8rem;
+            }
+            
+            .card {
+                padding: 15px;
+            }
+            
+            .mobile-notification {
+                display: block;
+            }
+            
+            input, textarea {
+                font-size: 16px; /* Previene el zoom en iOS */
+            }
+        }
+        
+        /* Mejoras para móviles en orientación horizontal */
+        @media (max-height: 500px) and (orientation: landscape) {
+            header {
+                padding: 10px;
+                margin-bottom: 15px;
+            }
+            
+            h1 {
+                font-size: 1.5rem;
+            }
+            
+            .card {
+                padding: 15px;
+                margin-bottom: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Validador QR Móvil + Excel</h1>
+            <p class="app-description">Registra personas, valida códigos QR con tu cámara y exporta los resultados a Excel</p>
+        </header>
+        
+        <div class="mobile-notification">
+            📱 Esta aplicación está optimizada para uso en dispositivos móviles
+        </div>
+        
+        <div class="tabs">
+            <div class="tab active" data-tab="register">Registrar</div>
+            <div class="tab" data-tab="validate">Validar QR</div>
+            <div class="tab" data-tab="contacts">Contactos</div>
+            <div class="tab" data-tab="validations">Validaciones</div>
+        </div>
+        
+        <div class="tab-content active" id="register-tab">
+            <div class="card">
+                <h2 class="card-title">Registrar Nueva Persona</h2>
+                <form id="personForm">
+                    <div class="form-group">
+                        <label for="name">Nombre completo</label>
+                        <input type="text" id="name" required placeholder="Ej: María González" class="mobile-optimized">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="title">Cargo o puesto</label>
+                        <input type="text" id="title" required placeholder="Ej: Gerente de Ventas" class="mobile-optimized">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="email">Correo electrónico</label>
+                        <input type="email" id="email" required placeholder="Ej: maria.gonzalez@empresa.com" class="mobile-optimized">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="phone">Teléfono (opcional)</label>
+                        <input type="tel" id="phone" placeholder="Ej: +1 234 567 8900" class="mobile-optimized">
+                    </div>
+                    
+                    <div class="actions">
+                        <button type="submit" id="generateBtn">Generar código QR</button>
+                    </div>
+                </form>
+            </div>
+            
+            <div class="card">
+                <h2 class="card-title">Vista Previa del QR</h2>
+                <div class="qr-preview">
+                    <div id="qrcode"></div>
+                    <div class="actions">
+                        <button id="saveBtn" class="btn-success">Guardar contacto</button>
+                        <button id="downloadBtn">Descargar QR</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="tab-content" id="validate-tab">
+            <div class="card">
+                <h2 class="card-title">Validar Código QR</h2>
+                <p>Usa la cámara de tu dispositivo para escanear un código QR y validar su autenticidad.</p>
+                
+                <div class="camera-container">
+                    <video id="video" autoplay playsinline></video>
+                    <div class="scan-area">
+                        <div class="scan-line"></div>
+                    </div>
+                </div>
+                
+                <div class="actions">
+                    <button id="startCamera">Iniciar Cámara</button>
+                    <button id="stopCamera" class="btn-danger">Detener Cámara</button>
+                </div>
+                
+                <div class="validation-result">
+                    <div class="result-icon">⏳</div>
+                    <h3>Esperando escaneo...</h3>
+                    <p>El resultado de la validación aparecerá aquí</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="tab-content" id="contacts-tab">
+            <div class="card">
+                <h2 class="card-title">Contactos Registrados</h2>
+                <div id="contactsList" class="contacts-grid">
+                    <!-- Los contactos guardados aparecerán aquí -->
+                </div>
+            </div>
+        </div>
+        
+        <div class="tab-content" id="validations-tab">
+            <div class="card">
+                <h2 class="card-title">Historial de Validaciones</h2>
+                <p>Registro de todos los códigos QR que han sido validados con la cámara.</p>
+                
+                <div class="actions">
+                    <button id="exportExcel" class="btn-success">Exportar a Excel</button>
+                    <button id="clearValidations" class="btn-danger">Limpiar Historial</button>
+                </div>
+                
+                <div id="validationsList" class="validation-grid">
+                    <!-- Las validaciones aparecerán aquí -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Elementos del DOM
+            const tabs = document.querySelectorAll('.tab');
+            const tabContents = document.querySelectorAll('.tab-content');
+            const personForm = document.getElementById('personForm');
+            const generateBtn = document.getElementById('generateBtn');
+            const saveBtn = document.getElementById('saveBtn');
+            const downloadBtn = document.getElementById('downloadBtn');
+            const startCameraBtn = document.getElementById('startCamera');
+            const stopCameraBtn = document.getElementById('stopCamera');
+            const exportExcelBtn = document.getElementById('exportExcel');
+            const clearValidationsBtn = document.getElementById('clearValidations');
+            const video = document.getElementById('video');
+            const qrcodeDiv = document.getElementById('qrcode');
+            const contactsList = document.getElementById('contactsList');
+            const validationsList = document.getElementById('validationsList');
+            const validationResult = document.querySelector('.validation-result');
+            
+            let currentQRCode = null;
+            let contacts = [];
+            let validations = [];
+            let stream = null;
+            let scanningInterval = null;
+            
+            // Inicializar desde localStorage si existe
+            if (localStorage.getItem('contacts')) {
+                contacts = JSON.parse(localStorage.getItem('contacts'));
+                renderContacts();
+            }
+            
+            if (localStorage.getItem('validations')) {
+                validations = JSON.parse(localStorage.getItem('validations'));
+                renderValidations();
+            }
+            
+            // Cambio de pestañas
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const tabId = tab.getAttribute('data-tab');
+                    
+                    // Desactivar todas las pestañas
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tabContents.forEach(tc => tc.classList.remove('active'));
+                    
+                    // Activar la pestaña seleccionada
+                    tab.classList.add('active');
+                    document.getElementById(`${tabId}-tab`).classList.add('active');
+                    
+                    // Si se cambia a la pestaña de validación, iniciar cámara
+                    if (tabId === 'validate') {
+                        setTimeout(initCamera, 300);
+                    } else {
+                        stopCamera();
+                    }
+                });
+            });
+            
+            // Generar QR
+            function generateQRCode(text) {
+                // Limpiar QR anterior
+                if (currentQRCode) {
+                    currentQRCode.clear();
+                }
+                
+                qrcodeDiv.innerHTML = '';
+                currentQRCode = new QRCode(qrcodeDiv, {
+                    text: text,
+                    width: 200,
+                    height: 200,
+                    colorDark: "#000000",
+                    colorLight: "#ffffff",
+                    correctLevel: QRCode.CorrectLevel.H
+                });
+            }
+            
+            // Guardar contactos en localStorage
+            function saveContacts() {
+                localStorage.setItem('contacts', JSON.stringify(contacts));
+            }
+            
+            // Guardar validaciones en localStorage
+            function saveValidations() {
+                localStorage.setItem('validations', JSON.stringify(validations));
+            }
+            
+            // Renderizar lista de contactos
+            function renderContacts() {
+                contactsList.innerHTML = '';
+                
+                if (contacts.length === 0) {
+                    contactsList.innerHTML = '<p class="no-contacts">No hay contactos guardados todavía.</p>';
+                    return;
+                }
+                
+                contacts.forEach((contact, index) => {
+                    const contactCard = document.createElement('div');
+                    contactCard.className = 'contact-card';
+                    
+                    contactCard.innerHTML = `
+                        <div class="contact-header">
+                            <div class="contact-name">${contact.name}</div>
+                        </div>
+                        <div class="contact-title">${contact.title}</div>
+                        <div class="contact-email">${contact.email}</div>
+                        ${contact.phone ? `<div class="contact-phone">${contact.phone}</div>` : ''}
+                        <div class="actions">
+                            <button onclick="viewContact(${index})">Ver QR</button>
+                            <button class="btn-danger" onclick="deleteContact(${index})">Eliminar</button>
+                        </div>
+                    `;
+                    
+                    contactsList.appendChild(contactCard);
+                });
+            }
+            
+            // Renderizar lista de validaciones
+            function renderValidations() {
+                validationsList.innerHTML = '';
+                
+                if (validations.length === 0) {
+                    validationsList.innerHTML = '<p class="no-validations">No hay validaciones registradas todavía.</p>';
+                    return;
+                }
+                
+                // Mostrar las validaciones más recientes primero
+                const reversedValidations = [...validations].reverse();
+                
+                reversedValidations.forEach((validation, index) => {
+                    const validationCard = document.createElement('div');
+                    validationCard.className = 'validation-card';
+                    
+                    const date = new Date(validation.timestamp).toLocaleString();
+                    
+                    validationCard.innerHTML = `
+                        <div class="contact-header">
+                            <div class="contact-name">${validation.valid ? '✅ Válido' : '❌ Inválido'}</div>
+                        </div>
+                        <div class="contact-title">${validation.name || 'Desconocido'}</div>
+                        <div class="contact-title">${date}</div>
+                        ${validation.details ? `<div class="contact-email">${validation.details}</div>` : ''}
+                    `;
+                    
+                    validationsList.appendChild(validationCard);
+                });
+            }
+            
+            // Ver contacto
+            window.viewContact = function(index) {
+                // Cambiar a la pestaña de registro
+                tabs.forEach(t => t.classList.remove('active'));
+                tabContents.forEach(tc => tc.classList.remove('active'));
+                
+                document.querySelector('[data-tab="register"]').classList.add('active');
+                document.getElementById('register-tab').classList.add('active');
+                
+                const contact = contacts[index];
+                
+                // Llenar el formulario
+                document.getElementById('name').value = contact.name;
+                document.getElementById('title').value = contact.title;
+                document.getElementById('email').value = contact.email;
+                document.getElementById('phone').value = contact.phone || '';
+                
+                // Generar QR
+                const qrText = generateVCard(contact);
+                generateQRCode(qrText);
+            };
+            
+            // Eliminar contacto
+            window.deleteContact = function(index) {
+                if (confirm('¿Estás seguro de que quieres eliminar este contacto?')) {
+                    contacts.splice(index, 1);
+                    saveContacts();
+                    renderContacts();
+                }
+            };
+            
+            // Generar vCard
+            function generateVCard(contact) {
+                return `BEGIN:VCARD
+VERSION:3.0
+N:${contact.name}
+TITLE:${contact.title}
+EMAIL:${contact.email}
+${contact.phone ? `TEL:${contact.phone}` : ''}
+NOTE:ID:${contact.id}
+END:VCARD`;
+            }
+            
+            // Descargar QR
+            downloadBtn.addEventListener('click', function() {
+                if (!currentQRCode) return;
+                
+                const canvas = qrcodeDiv.querySelector('canvas');
+                if (!canvas) return;
+                
+                const link = document.createElement('a');
+                link.download = `qrcode-${document.getElementById('name').value.replace(/\s+/g, '-').toLowerCase()}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
+            
+            // Guardar contacto
+            saveBtn.addEventListener('click', function() {
+                const name = document.getElementById('name').value;
+                const title = document.getElementById('title').value;
+                const email = document.getElementById('email').value;
+                const phone = document.getElementById('phone').value;
+                
+                if (!name || !title || !email) {
+                    alert('Por favor, complete los campos obligatorios: nombre, cargo y email.');
+                    return;
+                }
+                
+                const newContact = {
+                    id: Date.now().toString(36) + Math.random().toString(36).substr(2),
+                    name,
+                    title,
+                    email,
+                    phone
+                };
+                
+                contacts.push(newContact);
+                saveContacts();
+                renderContacts();
+                
+                alert('Contacto guardado correctamente!');
+            });
+            
+            // Enviar formulario
+            personForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const name = document.getElementById('name').value;
+                const title = document.getElementById('title').value;
+                const email = document.getElementById('email').value;
+                const phone = document.getElementById('phone').value;
+                
+                const contactData = {
+                    name,
+                    title,
+                    email,
+                    phone
+                };
+                
+                // Generar texto para el QR en formato vCard
+                const qrText = generateVCard(contactData);
+                generateQRCode(qrText);
+            });
+            
+            // Inicializar cámara
+            async function initCamera() {
+                try {
+                    validationResult.innerHTML = `
+                        <div class="result-icon">⏳</div>
+                        <h3>Iniciando cámara...</h3>
+                        <p>Por favor, permite el acceso a la cámara cuando se te solicite.</p>
+                    `;
+                    
+                    stream = await navigator.mediaDevices.getUserMedia({ 
+                        video: { 
+                            facingMode: "environment" 
+                        } 
+                    });
+                    
+                    video.srcObject = stream;
+                    video.setAttribute("playsinline", true);
+                    
+                    // Iniciar detección de QR
+                    startQRDetection();
+                    
+                } catch (error) {
+                    console.error("Error al acceder a la cámara:", error);
+                    validationResult.innerHTML = `
+                        <div class="result-icon invalid">❌</div>
+                        <h3>Error al acceder a la cámara</h3>
+                        <p>Asegúrate de permitir el acceso a la cámara y que tu dispositivo tenga una cámara disponible.</p>
+                        <p>En iOS, asegúrate de usar Safari.</p>
+                    `;
+                }
+            }
+            
+            // Detener cámara
+            function stopCamera() {
+                if (stream) {
+                    stream.getTracks().forEach(track => track.stop());
+                    stream = null;
+                }
+                
+                if (scanningInterval) {
+                    clearInterval(scanningInterval);
+                    scanningInterval = null;
+                }
+            }
+            
+            // Iniciar detección de QR
+            function startQRDetection() {
+                const canvasElement = document.createElement('canvas');
+                const canvas = canvasElement.getContext('2d');
+                
+                scanningInterval = setInterval(() => {
+                    if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                        canvasElement.height = video.videoHeight;
+                        canvasElement.width = video.videoWidth;
+                        
+                        canvas.drawImage(video, 0, 0, canvasElement.width, canvasElement.height);
+                        const imageData = canvas.getImageData(0, 0, canvasElement.width, canvasElement.height);
+                        const code = jsQR(imageData.data, imageData.width, imageData.height, {
+                            inversionAttempts: "dontInvert",
+                        });
+                        
+                        if (code) {
+                            validateQRCode(code.data);
+                        }
+                    }
+                }, 100);
+            }
+            
+            // Validar código QR
+            function validateQRCode(data) {
+                try {
+                    // Verificar si es un vCard
+                    if (data.includes('BEGIN:VCARD') && data.includes('END:VCARD')) {
+                        // Extraer ID si existe
+                        const idMatch = data.match(/NOTE:ID:([^\r\n]+)/);
+                        
+                        if (idMatch && idMatch[1]) {
+                            const contactId = idMatch[1];
+                            const contact = contacts.find(c => c.id === contactId);
+                            
+                            if (contact) {
+                                // QR válido
+                                validationResult.innerHTML = `
+                                    <div class="result-icon valid">✅</div>
+                                    <h3>QR Válido</h3>
+                                    <p>El código QR corresponde a:</p>
+                                    <p><strong>${contact.name}</strong></p>
+                                    <p>${contact.title}</p>
+                                    <p>${contact.email}</p>
+                                `;
+                                
+                                // Guardar validación
+                                validations.push({
+                                    valid: true,
+                                    name: contact.name,
+                                    title: contact.title,
+                                    email: contact.email,
+                                    details: "Código QR válido y verificado",
+                                    timestamp: new Date().toISOString()
+                                });
+                                
+                                saveValidations();
+                                renderValidations();
+                                
+                                // Detener temporalmente el escaneo
+                                clearInterval(scanningInterval);
+                                setTimeout(() => {
+                                    startQRDetection();
+                                    validationResult.innerHTML = `
+                                        <div class="result-icon">⏳</div>
+                                        <h3>Esperando escaneo...</h3>
+                                        <p>El resultado de la validación aparecerá aquí</p>
+                                    `;
+                                }, 3000);
+                                
+                                return;
+                            }
+                        }
+                    }
+                    
+                    // QR no válido
+                    validationResult.innerHTML = `
+                        <div class="result-icon invalid">❌</div>
+                        <h3>QR No Válido</h3>
+                        <p>El código QR escaneado no corresponde a un contacto registrado en el sistema.</p>
+                    `;
+                    
+                    // Guardar validación
+                    validations.push({
+                        valid: false,
+                        name: "Desconocido",
+                        details: "Código QR no reconocido",
+                        timestamp: new Date().toISOString()
+                    });
+                    
+                    saveValidations();
+                    renderValidations();
+                    
+                } catch (error) {
+                    console.error("Error validando QR:", error);
+                    validationResult.innerHTML = `
+                        <div class="result-icon invalid">❌</div>
+                        <h3>Error al validar QR</h3>
+                        <p>Ocurrió un error al procesar el código QR. Intenta nuevamente.</p>
+                    `;
+                }
+            }
+            
+            // Exportar a Excel
+            exportExcelBtn.addEventListener('click', function() {
+                if (validations.length === 0) {
+                    alert("No hay validaciones para exportar.");
+                    return;
+                }
+                
+                // Preparar datos para Excel
+                const data = validations.map(v => ({
+                    'Fecha': new Date(v.timestamp).toLocaleString(),
+                    'Válido': v.valid ? 'Sí' : 'No',
+                    'Nombre': v.name || 'N/A',
+                    'Cargo': v.title || 'N/A',
+                    'Email': v.email || 'N/A',
+                    'Detalles': v.details || 'N/A'
+                }));
+                
+                // Crear hoja de trabajo
+                const ws = XLSX.utils.json_to_sheet(data);
+                
+                // Crear libro de trabajo
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Validaciones QR");
+                
+                // Exportar a Excel
+                XLSX.writeFile(wb, "validaciones_qr.xlsx");
+            });
+            
+            // Limpiar historial de validaciones
+            clearValidationsBtn.addEventListener('click', function() {
+                if (confirm('¿Estás seguro de que quieres eliminar todo el historial de validaciones?')) {
+                    validations = [];
+                    saveValidations();
+                    renderValidations();
+                }
+            });
+            
+            // Event listeners para los botones de cámara
+            startCameraBtn.addEventListener('click', initCamera);
+            stopCameraBtn.addEventListener('click', stopCamera);
+            
+            // Inicializar con un ejemplo
+            const exampleContact = {
+                id: "example",
+                name: "Ejemplo Carlos Mendoza",
+                title: "Director de Marketing",
+                email: "carlos.mendoza@ejemplo.com",
+                phone: "+1 800 123 4567"
+            };
+            
+            contacts.push(exampleContact);
+            renderContacts();
+            
+            const exampleQRText = generateVCard(exampleContact);
+            generateQRCode(exampleQRText);
+        });
+    </script>
+</body>
+</html>
